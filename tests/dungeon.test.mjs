@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {seedWorld,transfer} from '../server/simulation.mjs';
+import {bindCitizens} from '../server/citizenship.mjs';
+import {generateDungeon,dungeonCommand} from '../server/dungeon.mjs';
+import {DUNGEON_ENTRANCE} from '../client/world-map.js';
+
+function reachable(run){const seen=new Set(['1,1']),q=[{x:1,y:1}];for(let i=0;i<q.length;i++){const p=q[i];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=p.x+dx,y=p.y+dy,k=`${x},${y}`;if(run.map[y]?.[x]!=='.'||seen.has(k))continue;seen.add(k);q.push({x,y});}}return seen;}
+function controlledWorld(){const w=seedWorld(1000),n=w.npcs[0],p={id:'user',name:'Explorer',accountName:'Explorer',citizenshipAccount:true,onboarded:true,citizenId:n.id,ownedCitizenIds:[n.id],created:0,lastSeen:0,controlAt:Date.now(),presenceAt:Date.now(),positionAt:Date.now(),x:DUNGEON_ENTRANCE.x,y:DUNGEON_ENTRANCE.y,inventory:{},cash:0};w.players[p.id]=p;n.ownerId=p.id;n.controllerId=p.id;bindCitizens(w);p.x=DUNGEON_ENTRANCE.x;p.y=DUNGEON_ENTRANCE.y;p.controlAt=p.presenceAt=Date.now();return {w,p,n};}
+function dirTo(a,b){if(b.x>a.x)return 'east';if(b.x<a.x)return 'west';if(b.y>a.y)return 'south';return 'north';}
+
+ test('procedural dungeon seeds are different and every objective is reachable',()=>{const a=generateDungeon('alpha'),b=generateDungeon('beta');assert.notDeepEqual(a.map,b.map);for(const run of [a,b]){const seen=reachable(run);assert.ok(seen.has(`${run.exit.x},${run.exit.y}`));assert.equal(run.seals.length,3);for(const seal of run.seals)assert.ok(seen.has(`${seal.x},${seal.y}`));}});
+
+test('only a directly controlled player citizen can enter',()=>{const {w,p}=controlledWorld();p.controlAt=0;p.presenceAt=0;assert.throws(()=>dungeonCommand(w,p,'dungeon-enter',{}, {transfer}),/direct control/i);p.controlAt=p.presenceAt=Date.now();const run=dungeonCommand(w,p,'dungeon-enter',{}, {transfer});assert.equal(run.active,true);assert.equal(p.dungeonStats.runs,1);});
+
+test('death ends the run and takes a real penalty',()=>{const {w,p}=controlledWorld();p.cash=1000;p.inventory={food:2};dungeonCommand(w,p,'dungeon-enter',{}, {transfer});const run=p.dungeonRun,adj=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:run.position.x+dx,y:run.position.y+dy})).find(q=>run.map[q.y]?.[q.x]==='.');assert.ok(adj);run.enemies=[];run.caches=[];run.traps=[{x:adj.x,y:adj.y,damage:50,triggered:false}];run.health=1;const beforeCash=p.cash;dungeonCommand(w,p,'dungeon-move',{dir:dirTo(run.position,adj)}, {transfer});assert.equal(p.dungeonRun,null);assert.equal(p.lastDungeonResult.status,'death');assert.ok(p.cash<beforeCash);assert.equal(p.inventory.food,1);assert.equal(p.x,DUNGEON_ENTRANCE.x);});
+
+test('solving three seals and reaching the exit pays conserved coins and produced loot',()=>{const {w,p}=controlledWorld();p.cash=600;dungeonCommand(w,p,'dungeon-enter',{}, {transfer});const run=p.dungeonRun;for(const seal of run.seals)seal.taken=true;run.enemies=[];run.traps=[];run.caches=[];const neighbor=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:run.exit.x+dx,y:run.exit.y+dy})).find(q=>run.map[q.y]?.[q.x]==='.');assert.ok(neighbor);run.position=neighbor;const beforeCash=p.cash,beforeTreasury=w.treasury.cash,beforeProduced=w.produced.ore||0;dungeonCommand(w,p,'dungeon-move',{dir:dirTo(neighbor,run.exit)}, {transfer});assert.equal(p.dungeonRun,null);assert.equal(p.lastDungeonResult.status,'success');assert.ok(p.cash>beforeCash);assert.equal(beforeTreasury-w.treasury.cash,p.lastDungeonResult.reward.coins);assert.equal((w.produced.ore||0)-beforeProduced,p.lastDungeonResult.reward.ore);assert.ok((p.inventory.ore||0)>=p.lastDungeonResult.reward.ore);});

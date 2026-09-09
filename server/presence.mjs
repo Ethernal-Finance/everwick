@@ -1,0 +1,3 @@
+import {playerControls} from './citizenship.mjs';
+export function visiblePlayers(w,now=Date.now()){return Object.values(w.players).filter(p=>now-(p.presenceAt||0)<15000&&(!p.citizenshipAccount||p.citizenId)&&(!p.citizenId||playerControls(w,w.npcs.find(n=>n.id===p.citizenId),now))).map(p=>({id:p.id,name:p.characters?.find(c=>c.id===p.characterId)?.name||p.name,avatar:p.avatar||1,appearance:p.appearance||null,x:p.insideHouse?(p.indoor?.x??5.5):p.x,y:p.insideHouse?(p.indoor?.y??8):p.y,insideHouse:p.insideHouse||null,direction:p.direction||0,walking:now-(p.movedAt||0)<900}));}
+export function publicHouses(w){return w.properties.map(h=>({...h,ownerName:w.players[h.owner]?.name||null,visitable:!!w.players[h.owner]}));}

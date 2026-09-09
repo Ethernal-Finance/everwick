@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3100
+      TRUST_PROXY: "1"
+      DATABASE_PATH: /app/data/everwick.sqlite
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - game-data:/app/data
+    init: true
+volumes:
+  game-data:

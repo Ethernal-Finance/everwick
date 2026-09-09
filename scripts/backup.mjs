@@ -1,0 +1,2 @@
+import {database} from '../server/db.mjs';import {resolve,dirname} from 'node:path';import {existsSync,mkdirSync} from 'node:fs';
+const arg=process.argv[2];if(!arg){console.error('Usage: node scripts/backup.mjs ./backups/new-name.sqlite');process.exit(1);}const target=resolve(arg);if(existsSync(target))throw Error('Backup target already exists; choose a new filename');mkdirSync(dirname(target),{recursive:true});const db=database();db.prepare('VACUUM INTO ?').run(target);db.close();console.log(`Consistent backup written to ${target}`);

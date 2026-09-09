@@ -1,0 +1,2 @@
+import {database} from '../server/db.mjs';
+const email=process.argv[2]||process.env.ADMIN_EMAIL;if(!email){console.error('Usage: npm run admin -- your@email.com (register in the game first)');process.exit(1);}const db=database();const r=db.prepare("UPDATE users SET role='admin' WHERE email=?").run(email.trim().toLowerCase());if(!r.changes){console.error('No registered account matches that email');process.exit(1);}console.log('Admin role granted to the matching account. Sign in at /admin.');db.close();

@@ -1,0 +1,9 @@
+import {randomInt} from 'node:crypto';
+const JOBS={shift:{duration:2,energy:15,reward:90,risk:0},courier:{duration:3,energy:25,reward:180,risk:15},street:{duration:4,energy:35,reward:340,risk:40}};
+export function refreshLife(w,p){p.life??={energy:100,heat:0,xp:0,lastTick:w.tick,history:[]};const l=p.life,elapsed=Math.max(0,w.tick-l.lastTick);l.energy=Math.min(100,l.energy+elapsed*4);l.heat=Math.max(0,l.heat-elapsed*2);l.lastTick=w.tick;return l;}
+export function lifeCommand(w,p,action,data,transfer){const l=refreshLife(w,p);
+ if(action==='fund-project'){w.city??={fund:0,level:0};if(w.city.level>=3)throw Error('All infrastructure projects are complete');if(!transfer(w,p.id,'treasury',100,'civic-project'))throw Error('You need 100 coins');w.city.fund+=100;if(w.city.fund>=2000){w.city.fund-=2000;w.city.level++;}return w.city;}
+ if(action==='start-job'){const spec=JOBS[data.kind];if(!Object.hasOwn(JOBS,data.kind))throw Error('Unknown job');if(l.job)throw Error('Finish your current job first');if(l.energy<spec.energy)throw Error('Rest to recover energy first');l.energy-=spec.energy;l.job={kind:data.kind,ends:w.tick+spec.duration,risk:spec.risk?Math.min(90,spec.risk+Math.floor(l.heat/3)):0};return l;}
+ if(action==='collect-job'){if(!l.job||w.tick<l.job.ends)throw Error('Your job is not finished');const j=l.job,spec=JOBS[j.kind],success=randomInt(100)>=j.risk;if(success){if(!transfer(w,'treasury',p.id,spec.reward,'job:'+j.kind))throw Error('Town payroll is short of funds. Try collecting later.');l.xp+=20;l.history.unshift(`${j.kind}: completed. Earned ${spec.reward} coins.`);}else{const fine=j.kind==='street'?Math.min(p.cash,85):0;if(fine)transfer(w,p.id,'treasury',fine,'street-fine');l.heat=Math.min(100,l.heat+(j.kind==='street'?30:5));l.history.unshift(`${j.kind}: failed. ${fine} coins in fines.`);}l.history=l.history.slice(0,6);l.job=null;return l;}
+ throw Error('Unknown activity');
+}

@@ -1,0 +1,5 @@
+import {readdirSync,readFileSync,mkdirSync,cpSync,rmSync,lstatSync,existsSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {resolve} from 'node:path';
+for(const dir of ['server','client','scripts'])for(const file of readdirSync(dir)){if(!/\.(mjs|js)$/.test(file))continue;const r=spawnSync(process.execPath,['--check',`${dir}/${file}`],{stdio:'inherit'});if(r.status)process.exit(r.status);}
+const output=resolve('dist');if(output!==resolve(process.cwd(),'dist')||existsSync(output)&&lstatSync(output).isSymbolicLink())throw Error('Unsafe build output');rmSync(output,{recursive:true,force:true});mkdirSync(output,{recursive:true});for(const dir of ['server','client','docs','scripts','tests'])cpSync(dir,`dist/${dir}`,{recursive:true});for(const file of ['package.json','package-lock.json','start.ps1','.env.example','README.md','Dockerfile','compose.yaml','Caddyfile','.dockerignore'])cpSync(file,`dist/${file}`);console.log('Validated server and browser modules; deployment package is in dist/. No secrets or database copied.');

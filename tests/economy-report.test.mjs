@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {seedWorld,addPlayer,transfer,trade,totalCash,tick} from '../server/simulation.mjs';
+import {economicReport} from '../server/economy.mjs';
+test('economic report measures employment as a percentage and never mutates money',()=>{const w=seedWorld();const before=totalCash(w);const e=economicReport(w);assert.equal(e.employment,100);assert.equal(e.employed,25);assert.equal(totalCash(w),before);w.npcs[0].employer=null;assert.equal(economicReport(w).employment,96);});
+test('household accounts and supply use settled transactions only',()=>{const w=seedWorld();addPlayer(w,'p','Test');w.tick=25;transfer(w,'treasury','p',100,'wage');trade(w,w.players.p,w.businesses[0],'food',2,12);const e=economicReport(w,'p');assert.equal(e.household.income,100);assert.equal(e.household.expenses,24);assert.equal(e.household.net,76);assert.equal(e.goods.find(g=>g.item==='food').units,2);assert.equal(e.spending,24);assert.equal(e.turnover,24);w.tick=50;assert.equal(economicReport(w,'p').household.income,0);});
+test('controlled resident transfers do not double count and empty towns remain finite',()=>{const w=seedWorld();addPlayer(w,'p','Test');w.players.p.citizenId=w.npcs[0].id;w.tick=25;transfer(w,'p',w.npcs[0].id,50,'internal');assert.equal(economicReport(w,'p').household.income,0);assert.equal(economicReport(w,'p').household.expenses,0);w.npcs=[];assert.equal(economicReport(w,'p').employment,0);});
+test('economic accounts remain finite through thirty simulated days',()=>{const w=seedWorld();for(let i=0;i<720;i++)tick(w);const e=economicReport(w);for(const key of ['employment','wages','rent','spending','turnover','inflation','unpaidWages'])assert.ok(Number.isFinite(e[key]),key);assert.ok(e.goods.every(g=>g.stock>=0&&g.units>=0));});
+
+test('basket inflation compares distinct completed days',()=>{const w=seedWorld();w.tick=48;w.economyHistory=[{day:1,prices:{...w.prices}},{day:2,prices:{...w.prices,food:24}}];w.prices.food=24;assert.ok(economicReport(w).inflation>0);});

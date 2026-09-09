@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {seedWorld,remember,event,totalCash} from '../server/simulation.mjs';
+import {neighbourhoodEvening} from '../server/social.mjs';
+test('distant neighbours cannot invent shared encounters',()=>{const w=seedWorld();w.npcs.forEach((n,i)=>{n.x=i*10;n.y=0;});const before=w.npcs.map(n=>n.memories.length);neighbourhoodEvening(w,{remember,event});assert.deepEqual(w.npcs.map(n=>n.memories.length),before);});
+test('nearby generous residents share existing food and remember each other',()=>{const w=seedWorld();w.npcs.forEach((n,i)=>{n.x=i*10;n.y=0;});const [a,b]=w.npcs;b.x=a.x+1;a.persona.traits.generosity=90;a.inventory.food=3;b.inventory.food=0;b.needs.hunger=90;const money=totalCash(w);neighbourhoodEvening(w,{remember,event});assert.equal(a.inventory.food,2);assert.equal(b.inventory.food,1);assert.equal(totalCash(w),money);assert.ok(b.memories.some(m=>m.text.includes('shared food')));assert.ok(a.relationships[b.id]>0);assert.equal(w.events.filter(e=>e.type==='community').length,1);});
