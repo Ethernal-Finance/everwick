@@ -47,6 +47,31 @@ The VPS is not authoritative. Any change that is not committed and pushed to Git
 
 # Agent Handoff History
 
+## 2026-09-09 — Town layout and building rendering cleanup
+
+**Agent:** Cursor Grok 4.6
+**Task:** Everwick Centre visual correctness and rendering-efficiency pass. No gameplay features, no record deletion, no push/deploy.
+
+**Files changed:**
+- `client/world-map.js` — Centre coordinates, MAP.version 6, footprints, viewport helper, TREE_CLEAR
+- `client/scenery.js` — unique landmark sprites; planters no longer cover doors
+- `client/map-renderer.js` — viewport culling, roof padding, no per-tile occupier arrays
+- `client/map-validation.js` — layout/sprite validation utility
+- `client/chapter.js`, `client/content.js`, `server/chapter.mjs`, `server/appearance.mjs`, `server/movement.mjs` — dest/shop coords follow the map
+- `tests/map-layout.test.mjs`, `tests/chapter.test.mjs`
+
+**Layout:** Moved watch, hall, mine, inn, market, workshop, garden off roads. Extended the y=13 ridge path to x=47. Taller farm/mine collision. Unique 64/80px sprites for shops and civic buildings.
+
+**Rendering:** Static buildings culled with 8-tile roof pad. Spawn drawable buildings 61 → 19. TREE_CLEAR O(1) instead of spreading every world structure per tree tile.
+
+**Tests:** Full suite 148 pass (baseline 146). Build OK. Local `/api/town-preview` served migrated coords. No browser MCP; visual pass was deterministic validation only.
+
+**Deployment:** Not pushed, not deployed.
+
+**Known issues:** Bramble Close cottages south of y=20 sit on lawn, not cobble (allowlisted as lawn lots). 64px landmark art is still small village houses, not unique large buildings. No in-browser zoom/mobile screenshot this pass.
+
+**Next:** Visual check at normal and town-overview zoom on desktop and mobile after push/deploy. Consider dedicated large landmark art later.
+
 ## Initial Git Collaboration Setup
 
 **Task:** Establish shared Git/GitHub workflow for Everwick.

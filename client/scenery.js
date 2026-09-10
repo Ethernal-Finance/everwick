@@ -1,7 +1,7 @@
 // Decorative scenery only: no collision, economy, or destination changes.
 import {isPath,biome,blocked,CIVIC,HOMES,COTTAGES} from './world-map.js';
 const T=16;
-export const LANDMARK_ROOFS={tavern:[448,64,64,64],clinic:[448,256,64,64],hall:[448,192,64,64],bank:[448,384,64,64],sunfield:[320,400,64,80],orchard:[448,320,64,64],forge:[448,128,64,64],market:[448,512,64,64]};
+export const LANDMARK_ROOFS={tavern:[448,64,64,64],clinic:[448,256,64,64],hall:[448,192,64,64],bank:[448,384,64,64],sunfield:[320,400,64,80],orchard:[448,320,64,64],forge:[448,128,64,64],market:[448,512,64,64],restaurant:[448,448,64,64],inn:[384,512,64,64],workshop:[256,128,64,64],warehouse:[256,384,64,64],garden:[320,144,64,80],watch:[384,64,64,64],barber:[384,256,64,64],tailor:[384,320,64,64],cobbler:[384,368,64,64],jeweler:[384,416,64,64]};
 export function groundDetail(r,x,y,path,b){
  const c=r.ctx,px=x*T,py=y*T,h=((x*73856093)^(y*19349663))>>>0;
  // Break up the tiled lawn without adding objects the player might mistake for walls.
@@ -23,11 +23,10 @@ export function groundDetail(r,x,y,path,b){
 export function townScenery(r,drawables,buildings,bounds){
  const {minX,maxX,minY,maxY}=bounds;
  const add=(key,rect,x,y)=>{if(x<minX-4||x>maxX+4||y<minY-5||y>maxY+5)return;drawables.push({y,draw:()=>r.sprite(key,rect,x*T,y*T-rect[3])});};
- // Planters and barrels sit against solid building fronts, clear of the entrance.
+ // 16px planters sit on the front-left walkable tile, never on the door (x+1.5) or roads.
  for(const b of [...buildings,...CIVIC,...HOMES,...COTTAGES]){
-  if(b.x>94||b.y>80)continue;
-  add('village',[192,192,32,16],b.x,b.y-1.8);
-  if(b.id==='tavern'||b.id==='warehouse')add('village',[0,192,16,16],b.x+3,b.y-.2);
+  if(b.x>94||b.y>80||isPath(b.x,b.y)||blocked(b.x,b.y))continue;
+  add('village',[192,192,16,16],b.x,b.y);
  }
  // Low flowers soften the square and residential verges. Keep roads and work plots clear.
  for(let y=Math.max(3,minY);y<Math.min(78,maxY);y++)for(let x=Math.max(5,minX);x<Math.min(94,maxX);x++){

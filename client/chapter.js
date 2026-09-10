@@ -1,8 +1,10 @@
 import {esc} from './common.js';
+import {CIVIC,PLACES,entrance} from './world-map.js';
+const hall=entrance(CIVIC.find(b=>b.id==='hall')),farm=entrance(PLACES.sunfield),clinic=entrance(PLACES.clinic);
 export const CHAPTER=[
- {title:'A town that needs you',text:'The clinic is short of supplies. Meet the town clerk outside Town Hall to take a delivery contract.',x:34,y:14,button:'Speak to the clerk'},
- {title:'Collect the supplies',text:'Walk to Sunfield Farm. The town pays the farmer for five food supplies; you carry them to the clinic.',x:9,y:28,button:'Collect five supplies'},
- {title:'Keep your promise',text:'Bring the sealed supplies to Willow Clinic. This delivery puts real stock into the clinic and earns 1,000 coins.',x:29,y:29,button:'Deliver to the clinic'},
+ {title:'A town that needs you',text:'The clinic is short of supplies. Meet the town clerk outside Town Hall to take a delivery contract.',x:hall.x,y:hall.y,button:'Speak to the clerk'},
+ {title:'Collect the supplies',text:'Walk to Sunfield Farm. The town pays the farmer for five food supplies; you carry them to the clinic.',x:farm.x,y:farm.y,button:'Collect five supplies'},
+ {title:'Keep your promise',text:'Bring the sealed supplies to Willow Clinic. This delivery puts real stock into the clinic and earns 1,000 coins.',x:clinic.x,y:clinic.y,button:'Deliver to the clinic'},
  {title:'Put down roots',text:'Buy a starter home from the Homes panel (~900 ◈). Existing home owners can claim this milestone too. Earn 500 coins toward furnishing it.',button:'Claim home milestone'},
  {title:'Make it yours',text:'Enter your home, buy furniture and place at least one item. Return here to collect 400 coins.',button:'Claim decoration milestone'},
  {title:'A stake in the high street',text:'Buy the Green Dragon Tavern starter listing (1,200 ◈) — or any business you already own qualifies. Finish the chapter for 600 coins.',button:'Complete the chapter'}];

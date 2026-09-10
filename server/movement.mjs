@@ -18,12 +18,12 @@ export function planFor(w,n){
  const sleep=h<(5+id%3)||h>=(21+id%3);
  const restX=home?.x??n.x??MAP.spawn.x, restY=home?.y??n.y??MAP.spawn.y, restPlace=home?.id||n.settlementId||'camp';
  add('rest',restX,restY,home?(sleep?'Sleeping at home':'Resting at home'):(sleep?'Camping for the night':'Resting on the road'),restPlace,sleep?120:n.needs.energy<25?110:8,`Energy ${Math.round(n.needs.energy)}/100; ${sleep?'my sleep schedule':'recover before my next shift'}`);
- if(n.needs.hunger>35&&!(n.inventory.food>0)){let b=shop('food');const listing=w.exchange?.listings.filter(l=>l.item==='food'&&l.price<=n.cash&&l.price<=n.preferences.maxFoodPrice).sort((a,b)=>a.price-b.price)[0];if(listing&&(!b||listing.price<b.price))b={id:'player-market',x:33,y:28,name:'the player market'};if(b)add('shop',b.x+1+id%3,b.y+1+id%2,`Buying groceries at ${b.name}`,b.id,80+n.needs.hunger/2,'I need food and can afford this shop');}
+ if(n.needs.hunger>35&&!(n.inventory.food>0)){let b=shop('food');const listing=w.exchange?.listings.filter(l=>l.item==='food'&&l.price<=n.cash&&l.price<=n.preferences.maxFoodPrice).sort((a,b)=>a.price-b.price)[0];if(listing&&(!b||listing.price<b.price))b={id:'player-market',x:PLACES.market.x,y:PLACES.market.y,name:'the player market'};if(b)add('shop',b.x+1+id%3,b.y+1+id%2,`Buying groceries at ${b.name}`,b.id,80+n.needs.hunger/2,'I need food and can afford this shop');}
  if(h>=7&&h<Math.min(23,7+(employer?.hours||10))&&employer)add('work',employer.x+(id+cycle)%3,employer.y+1+(id+cycle)%2,`Working at ${employer.name}`,employer.id,70+(n.personality==='ambitious'?12:0)+(n.cash<n.rent*3?10:0),'My shift is open; wages cover my living costs');
  if(!sleep){
   if((!employer||(h>=17&&id%12===0))&&h>=7&&h<22){const site=w.construction?.projects.filter(p=>p.status==='building'&&materialsReady(p)).sort((a,b)=>Math.hypot(a.x-n.x,a.y-n.y)-Math.hypot(b.x-n.x,b.y-n.y))[0];if(site)add('build',site.x+id%3,site.y+1,`Building ${site.name}`,site.id,88,'Earn construction wages and expand the town');}
 
-  const spaces=[{x:24,y:22,name:'the square'},{x:12,y:38,name:'the community garden'},{x:19,y:30,name:'the inn courtyard'}],spot=spaces[(id+cycle)%spaces.length];
+  const spaces=[{x:24,y:22,name:'the square'},{x:12,y:38,name:'the community garden'},{x:22,y:30,name:'the inn courtyard'}],spot=spaces[(id+cycle)%spaces.length];
   add('social',spot.x+id%3,spot.y+id%2,`Chatting with neighbours at ${spot.name}`,'social-'+((id+cycle)%3),20+(100-n.needs.social)*.6+(n.personality==='sociable'?12:0),'Seek company to restore social wellbeing');
   add('civic',24+(id+cycle)%8,22+id%3,'Tending the town square','square',employer?12:64,'Help maintain public space while between jobs');
   const item=['meal','ale','goods','care','lodging'][id%5],b=shop(item);if(b)add('shop',b.x+1+id%3,b.y+1+id%2,`Visiting ${b.name}`,b.id,25+(h>=17&&h<21?25:0),'Spend within my means at a local business');

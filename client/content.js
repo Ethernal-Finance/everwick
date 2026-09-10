@@ -1,4 +1,5 @@
 // Authored content shared by the interface and the authoritative simulation.
+import {CIVIC,entrance} from './world-map.js';
 export const TALES={
  hearth:{title:'A light in the clinic',tag:'Care & belonging',patron:'clinic',reward:320,badge:'Good Neighbour',intro:'The clinic has kept a light in its window all week. Someone is working late, and the cupboards are almost empty.',ending:{paid:'The clinic has a stocked pantry and you have earned an honest wage. Your name goes into its book of reliable couriers.',community:'You leave the fee for the next neighbour who cannot afford care. The clinic staff remember who kept their light on.'},steps:[
   {place:'clinic',title:'The last lamp burning',text:'The night attendant folds a blanket over an empty chair. “People need somewhere to go before things become desperate.” Ask what the clinic needs.',button:'Listen to the night attendant'},
@@ -45,5 +46,5 @@ export const FESTIVALS=[
 ];
 export const FESTIVAL_HOURS=168;
 export function journalRank(xp=0){return xp>=500?'Town Legend':xp>=300?'Pillar of the Community':xp>=150?'Trusted Neighbour':xp>=60?'Familiar Face':'A New Face';}
-export function storyPlace(w,id){if(id==='square')return {name:'Town Square',x:24,y:22};if(id==='hall')return {name:'Town Hall',x:34,y:14};if(id==='dock')return {name:'Willowbank Dock',x:9,y:37};const b=w.businesses.find(b=>b.id===id);return b?{name:b.name,x:b.x+2,y:b.y+1}:null;}
+export function storyPlace(w,id){if(id==='square')return {name:'Town Square',x:24,y:22};if(id==='hall'){const hall=CIVIC.find(b=>b.id==='hall'),spot=entrance(hall);return {name:'Town Hall',x:spot.x,y:spot.y};}if(id==='dock')return {name:'Willowbank Dock',x:9,y:37};const b=w.businesses.find(b=>b.id===id);return b?{name:b.name,x:b.x+2,y:b.y+1}:null;}
 export function storyLock(p,tale){const missing=(tale.requires||[]).filter(id=>!p.journal?.stories?.[id]?.complete);return missing.length?'Finish '+missing.map(id=>TALES[id].title).join(' and '):'';}

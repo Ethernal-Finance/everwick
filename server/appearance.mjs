@@ -1,4 +1,5 @@
 import {SKIN_TONES,EYE_COLORS,NATURAL_HAIR_COLORS,HAIR_COLORS,BODY_FRAMES,HAIR_STYLES,TORSO_STYLES,LEG_STYLES,SHOE_STYLES,JEWELRY_STYLES,CLOTHING_COLORS,BARBER_PRICES,WARDROBE_PRICES,STYLE_PRICES,APPEARANCE_SHOP_IDS} from '../client/lpc-catalog.js';
+import {PLACES} from '../client/world-map.js';
 
 const pick=(list,seed,offset=0)=>list[Math.abs((seed+offset*2654435761)>>>0)%list.length];
 function hash(value){let h=2166136261;for(const ch of String(value))h=Math.imul(h^ch.charCodeAt(0),16777619)>>>0;return h;}
@@ -7,10 +8,10 @@ const styleIds=list=>list.map(x=>x.id);
 const itemKey=(style,color)=>style==='none'?'none':`${style}:${color}`;
 
 export const APPEARANCE_SHOPS=[
- {id:'barber',name:'Shear & Comb',type:'Barber',serviceKind:'barber',x:13,y:19,price:80,wage:42,ownerNpc:'npc-21'},
- {id:'tailor',name:'Needle & Thread',type:'Tailor',serviceKind:'tailor',x:13,y:28,price:120,wage:44,ownerNpc:'npc-22'},
- {id:'cobbler',name:'Last & Sole',type:'Cobbler',serviceKind:'cobbler',x:20,y:37,price:75,wage:41,ownerNpc:'npc-23'},
- {id:'jeweler',name:'Gilded Finch',type:'Jeweler',serviceKind:'jeweler',x:27,y:37,price:160,wage:46,ownerNpc:'npc-24'}
+ {id:'barber',name:'Shear & Comb',type:'Barber',serviceKind:'barber',x:PLACES.barber.x,y:PLACES.barber.y,price:80,wage:42,ownerNpc:'npc-21'},
+ {id:'tailor',name:'Needle & Thread',type:'Tailor',serviceKind:'tailor',x:PLACES.tailor.x,y:PLACES.tailor.y,price:120,wage:44,ownerNpc:'npc-22'},
+ {id:'cobbler',name:'Last & Sole',type:'Cobbler',serviceKind:'cobbler',x:PLACES.cobbler.x,y:PLACES.cobbler.y,price:75,wage:41,ownerNpc:'npc-23'},
+ {id:'jeweler',name:'Gilded Finch',type:'Jeweler',serviceKind:'jeweler',x:PLACES.jeweler.x,y:PLACES.jeweler.y,price:160,wage:46,ownerNpc:'npc-24'}
 ];
 
 export function ensureAppearanceShops(w){
