@@ -34,7 +34,9 @@ If something failed, document the failure instead of hiding it.
 **Development mode:** Active build phase. Changes may be deployed directly to live.
 
 **Source repository:** `Ethernal-Finance/everwick`
+**Canonical source of truth:** GitHub `Ethernal-Finance/everwick` branch `main`
 
+The VPS is not authoritative. Any change that is not committed and pushed to GitHub is considered incomplete and must not be deployed as permanent source.
 **Authoritative source directory:**
 
 `/opt/everwick-work/everwick`

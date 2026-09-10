@@ -9,7 +9,7 @@ All agents must read this file before making changes.
 - The active repository is this Git repository.
 - The primary branch is `main`.
 - During the current build phase, changes may be deployed directly to the live Everwick environment.
-- Do not create alternate branches unless explicitly requested.
+-s Do not create alternate branches unless explicitly requested.
 - Do not treat `/opt/everwick` or other deployment copies as the authoritative source unless specifically instructed.
 
 ## Commit Rules
@@ -56,7 +56,46 @@ Do not combine unrelated changes into a single commit.
 Do not rewrite, squash, amend, or force-push another agent's commits unless explicitly instructed.
 
 ## Before Editing
+## Source of Truth — CRITICAL
 
+GitHub is the 100% authoritative source of truth for Everwick.
+
+Canonical repository:
+
+`Ethernal-Finance/everwick`
+
+Canonical branch:
+
+`main`
+
+The VPS filesystem is NOT the source of truth.
+
+`/opt/everwick-work/everwick` is a working checkout of the GitHub repository.
+
+`/opt/everwick` is a deployment/runtime location and must never be treated as authoritative source code.
+
+### Required Rule
+
+Every source-code change must follow this order:
+
+1. Start from the latest `origin/main`.
+2. Make the change in the Git working copy.
+3. Test the change.
+4. Commit the change.
+5. Push the commit to GitHub.
+6. Deploy the committed GitHub version to live.
+
+A change that exists only on the VPS is NOT considered part of Everwick.
+
+Do not make permanent fixes directly inside `/opt/everwick`.
+
+Do not deploy uncommitted source code.
+
+Do not deploy a commit that has not been pushed to GitHub.
+
+GitHub must always contain the exact source needed to reproduce the live application.
+
+If the VPS and GitHub disagree, GitHub wins unless a human explicitly states otherwise.
 Always inspect the existing implementation before replacing it.
 
 Search for:
