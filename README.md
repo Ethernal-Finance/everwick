@@ -1,3 +1,5 @@
+> **AI AGENTS & CONTRIBUTORS:** Read [`AGENTS.md`](./AGENTS.md) before modifying this repository. It contains required collaboration, commit, testing, deployment, and data-safety rules.
+
 # Everwick
 
 A persistent town life game and citizenship platform. Node 24+, no npm dependencies required.
