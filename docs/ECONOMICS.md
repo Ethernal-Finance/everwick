@@ -41,3 +41,9 @@ The shipped default global daily call cap is 100. It must be redesigned into per
 At $25,000 gross, one illustrative package mix is 400 × $25 + 100 × $75 + 25 × $199 + 5 × $499 = **$24,970**. This is a planning scenario, not funding raised. Fees, tax, refunds and benefit-delivery costs reduce usable funds. The public progress bar uses only settled Stripe rows net of refunds and labels test purchases as test data.
 
 This amount can fund a tightly scoped next milestone; it should not be presented as funding a complete persistent multiplayer company. Set a fixed scope, disclose remaining work and publish monthly gross/net/use-of-funds updates from real records.
+
+### Claim supply cap (enforced at checkout and settlement)
+
+Checkout now counts unclaimed, claimable Generation A residents in the live world and refuses a sale when the remaining supply cannot cover the requested package. The same check repeats at webhook settlement; an over-cap purchase is marked oversold for manual refund instead of granting entitlements that cannot be delivered. A fresh build seeds 25 Generation A founders; the Gen A 250 migration spreads 250 residents across cohorts (40 Everwick, 60 satellite, 80 traveling, 70 frontier) of which only the non-away cohorts are claimable, so the live ceiling is lower than 250 and changes as residents migrate.
+
+The illustrative $25,000 package mix (~700 claim slots) exceeds every one of these ceilings, so the campaign must be rescaled to what the town can actually deliver before any paid launch. The Breeder pack is retired from sale: it priced a heritable breeding advantage, which the commercial rules in this document forbid selling. Existing Breeder purchases keep settling and refunding through the legacy path.
