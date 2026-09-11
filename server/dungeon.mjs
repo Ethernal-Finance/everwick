@@ -4,6 +4,7 @@ import {DUNGEON_ENTRANCE} from '../client/world-map.js';
 const DIRS={north:[0,-1],south:[0,1],west:[-1,0],east:[1,0]};
 const LOOT=['food','ore','goods'];
 const SHRINE_KINDS=['mending','wayfinder'];
+const revealSeen=new WeakMap();
 
 function hashSeed(value){let h=2166136261>>>0;for(const ch of String(value)){h=Math.imul(h^ch.charCodeAt(0),16777619)>>>0;}return h||1;}
 function randomFactory(seed){let x=hashSeed(seed);return ()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296;};}
@@ -12,7 +13,7 @@ const key=(x,y)=>`${x},${y}`;
 const neighbors=(grid,x,y)=>[[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>({x:x+dx,y:y+dy})).filter(p=>grid[p.y]?.[p.x]==='.');
 
 function distances(grid,start){const out=new Map([[key(start.x,start.y),0]]),queue=[start];for(let i=0;i<queue.length;i++){const p=queue[i],d=out.get(key(p.x,p.y));for(const n of neighbors(grid,p.x,p.y)){const k=key(n.x,n.y);if(out.has(k))continue;out.set(k,d+1);queue.push(n);}}return out;}
-function reveal(run,x,y,radius=2){run.discovered??=[];const seen=new Set(run.discovered);for(let yy=y-radius;yy<=y+radius;yy++)for(let xx=x-radius;xx<=x+radius;xx++)if(xx>=0&&yy>=0&&xx<run.width&&yy<run.height&&Math.hypot(xx-x,yy-y)<=radius+.35)seen.add(key(xx,yy));run.discovered=[...seen];}
+function reveal(run,x,y,radius=2){run.discovered??=[];let seen=revealSeen.get(run);if(!seen){seen=new Set(run.discovered);revealSeen.set(run,seen);}for(let yy=y-radius;yy<=y+radius;yy++)for(let xx=x-radius;xx<=x+radius;xx++)if(xx>=0&&yy>=0&&xx<run.width&&yy<run.height&&Math.hypot(xx-x,yy-y)<=radius+.35){const k=key(xx,yy);if(!seen.has(k)){seen.add(k);run.discovered.push(k);}}}
 function log(run,text){run.log??=[];run.log.unshift(text);run.log=run.log.slice(0,12);}
 function runRandom(run,salt=''){run.randomCounter=(run.randomCounter||0)+1;return randomFactory(`${run.seed}:${salt}:${run.randomCounter}`)();}
 function revealNearestObjective(run,x,y){const targets=[...run.seals.filter(s=>!s.taken).map(s=>({...s,label:'rune seal'})),run.relic&&!run.relic.claimed?{...run.relic,label:'relic vault'}:null,run.seals.every(s=>s.taken)?{...run.exit,label:'exit gate'}:null].filter(Boolean);if(!targets.length)return null;targets.sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y));const target=targets[0];reveal(run,target.x,target.y,4);return target.label;}

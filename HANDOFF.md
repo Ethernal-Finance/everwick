@@ -47,6 +47,22 @@ The VPS is not authoritative. Any change that is not committed and pushed to Git
 
 # Agent Handoff History
 
+## 2026-09-11 — Dungeon movement responsiveness
+
+**Agent:** Cursor Grok
+**Task:** Fix laggy / barely-movable dungeon controls on the live site.
+
+**Root cause:** Each WASD dungeon step called `act()` with `busy=true`, waited for `/api/command`, then reloaded the entire `/api/world` payload and re-rendered the panel. Held keys and touch arrows were dropped while busy.
+
+**Files changed:**
+- `client/game.js` — queued dungeon moves; apply command result to `world.player.dungeonRun`; full world refresh only when a run ends
+- `client/map-renderer.js` — cache fog-of-war Set; drop per-tile dungeon sprite/stroke work
+- `server/dungeon.mjs` — incremental reveal without rebuilding the discovered array every step
+- `docs/DUNGEONS.md`
+
+**Tests / build:** full suite 154 pass; build OK.
+**Deployment:** not deployed yet.
+
 ## 2026-09-09 — Town layout and building rendering cleanup
 
 **Agent:** Cursor Grok 4.6

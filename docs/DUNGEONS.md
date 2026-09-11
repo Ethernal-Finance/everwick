@@ -16,7 +16,7 @@ Successful clears gradually raise the expedition tier. Higher tiers use larger m
 
 The player must recover all three rune seals and then reach the exit gate. The exit can be found before the seals, but it remains locked until all three are collected.
 
-Movement uses WASD or the arrow keys. Guardians interrupt movement and must be defeated or escaped through the Dungeons panel.
+Movement uses WASD or the arrow keys. Each step is still validated by the server, but the browser queues a couple of pending steps and applies the command result to the local dungeon run without reloading the whole town world on every keypress. Guardians interrupt movement and must be defeated or escaped through the Dungeons panel.
 
 ## Optional rooms
 
