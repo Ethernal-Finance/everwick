@@ -8,7 +8,7 @@ Dungeons are never completed by autonomous citizen routines. Entering a dungeon 
 
 ## Procedural generation
 
-Every entry creates a new seeded maze. The maze contains a reachable start, a reachable exit, three rune seals, guardians, hidden traps, and supply caches. The generator verifies the topology by carving one connected maze, so all objectives are part of the same traversable floor network.
+Every entry creates a new seeded maze. The maze contains a reachable start, a reachable exit, three rune seals, guardians, hidden traps, supply caches, shrine rooms, and an optional relic vault. The generator verifies the topology by carving one connected maze, so all objectives are part of the same traversable floor network.
 
 Successful clears gradually raise the expedition tier. Higher tiers use larger mazes and stronger guardians.
 
@@ -17,6 +17,14 @@ Successful clears gradually raise the expedition tier. Higher tiers use larger m
 The player must recover all three rune seals and then reach the exit gate. The exit can be found before the seals, but it remains locked until all three are collected.
 
 Movement uses WASD or the arrow keys. Guardians interrupt movement and must be defeated or escaped through the Dungeons panel.
+
+## Optional rooms
+
+Each run can contain two shrine rooms and one relic vault.
+
+* Mending shrines restore dungeon health once.
+* Wayfinder shrines reveal a nearby remaining objective: a rune seal, an unclaimed relic vault, or the exit gate once every seal has been recovered.
+* The relic vault marks an artifact as claimed inside the run. The artifact is only added to inventory if the player clears the dungeon afterward. Dying or abandoning the run leaves the claimed relic behind.
 
 ## Combat and supplies
 
@@ -44,7 +52,7 @@ Abandoning a run voluntarily gives no clear reward, but does not apply the death
 
 Supply caches and defeated guardians can add physical goods during the run. These items are recorded in the production ledger.
 
-A successful clear grants ore and goods as produced expedition loot. It also offers a coin bounty funded by the existing town treasury. If the treasury cannot cover the full bounty, only the available amount can be paid. The dungeon does not create coins.
+A successful clear grants ore and goods as produced expedition loot. If the relic vault was claimed, the clear also returns one artifact and increases the treasury-funded coin bounty. If the treasury cannot cover the full bounty, only the available amount can be paid. The dungeon does not create coins.
 
 ## Art
 
