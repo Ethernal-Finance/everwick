@@ -1,5 +1,5 @@
 import {createHmac,timingSafeEqual} from 'node:crypto';
-import {atomic} from './db.mjs';
+import {atomic,readWorld} from './db.mjs';
 import {salesEnabled} from './security.mjs';
 
 const founderBenefits=['Citizenship: claim one Generation A resident (any sex)','Founder badge','Founding registry'];
@@ -14,11 +14,17 @@ export const PACKS={
  city:pack('City Founder',19900,3,['Three Gen A claim slots (any sex)','Cosmetic bundle','Business name reservation','Early business access']),
  patron:pack('Everwick Patron',49900,5,['Five Gen A claim slots (any sex)','Patron credit','Quarterly group developer Q&A','Patron decoration set']),
 };
-export const TIERS=PACKS;
+/** Public sale surface: the published 4-tier plan. PACKS keeps `breeder` only so legacy purchases still settle and refund. */
+export const TIERS={founder:PACKS.founder,citizen:PACKS.citizen,town:PACKS.town,city:PACKS.city,patron:PACKS.patron};
+
+/** Live claimable Generation A supply. Adults, generation 0, non-starter, unowned, uncontrolled, not away. The Gen A 250 migration spreads residents across cohorts (40 Everwick / 60 satellite / 80 traveling / 70 frontier) and only non-away cohorts are claimable, so the cap is computed from the live world rather than a constant. */
+function claimableGenA(w){return w.npcs.filter(n=>n.age>=18&&(n.generation||0)===0&&!n.starter&&!n.ownerId&&!n.controllerId&&n.residency!=='away').length;}
+export function unclaimedClaimSlots(db){const row=db.prepare('SELECT COALESCE(SUM(slots_remaining),0) remaining FROM entitlements WHERE active=1').get();return Number(row.remaining)||0;}
+export function claimSupply(db,w){return {claimable:claimableGenA(w),unclaimed:unclaimedClaimSlots(db)};}
 
 const CANON={citizen:'founder',founder:'founder',breeder:'breeder',town:'town',city:'city',patron:'patron'};
 export function canonicalPack(tier){const k=String(tier||'').toLowerCase();return CANON[k]||null;}
-export function packCatalog(){return ['founder','breeder','town','city','patron'].map(k=>({key:k,...PACKS[k]}));}
+export function packCatalog(){return ['founder','town','city','patron'].map(k=>({key:k,...PACKS[k]}));}
 function packOrThrow(tier){const c=canonicalPack(tier);if(!c)throw Error('Unknown founder package');return {canonical:c,pkg:PACKS[c]};}
 function priceEnv(canonical,requested){
  const upper=String(requested||canonical).toUpperCase();
@@ -31,9 +37,12 @@ async function stripe(path,form){if(!stripeReady())throw Object.assign(Error('St
 
 export async function checkout(db,user,packKey){
  if(!salesEnabled(db))throw Object.assign(Error('Founder sales are temporarily paused. No payment was taken.'),{status:503,expose:true});
- const {canonical,pkg}=packOrThrow(packKey);const origin=process.env.APP_ORIGIN||'http://localhost:3100';
+ const {canonical,pkg}=packOrThrow(packKey);
+ if(canonical==='breeder')throw Object.assign(Error('The Breeder pack is no longer sold. Founding Citizen, Town Founder, City Founder and Everwick Patron remain available.'),{status:410,expose:true});
+ const supply=claimSupply(db,readWorld(db));if(supply.unclaimed+pkg.slots>supply.claimable)throw Object.assign(Error('Founder campaign is sold out for this build: unclaimed Generation A residents cannot cover another package. Existing claim slots are unaffected.'),{status:409,expose:true});
+ const origin=process.env.APP_ORIGIN||'http://localhost:3100';
  const price=priceEnv(canonical,packKey);const pricing=price?{'line_items[0][price]':price}:{'line_items[0][price_data][currency]':'usd','line_items[0][price_data][unit_amount]':String(pkg.amount),'line_items[0][price_data][product_data][name]':pkg.name};
- const s=await stripe('checkout/sessions',{'mode':'payment','customer_creation':'always','customer_email':user.email,'client_reference_id':user.id,'metadata[user_id]':user.id,'metadata[tier]':canonical,'metadata[pack]':canonical,'metadata[slots]':String(pkg.slots),'payment_intent_data[metadata][user_id]':user.id,'payment_intent_data[metadata][tier]':canonical,'payment_intent_data[metadata][pack]':canonical,'payment_intent_data[receipt_email]':user.email,...pricing,'line_items[0][quantity]':'1','success_url':`${origin}/play?checkout=success`,'cancel_url':`${origin}/?checkout=cancelled`});
+ const s=await stripe('checkout/sessions',{'mode':'payment','customer_creation':'always','customer_email':user.email,'client_reference_id':user.id,'metadata[user_id]':user.id,'metadata[tier]':canonical,'metadata[pack]':canonical,'metadata[slots]':String(pkg.slots),'payment_intent_data[metadata][user_id]':user.id,'payment_intent_data[metadata][tier]':canonical,'payment_intent_data[metadata][pack]':canonical,'payment_intent_data[metadata][receipt_email]':user.email,...pricing,'line_items[0][quantity]':'1','success_url':`${origin}/play?checkout=success`,'cancel_url':`${origin}/?checkout=cancelled`});
  db.prepare('INSERT OR IGNORE INTO purchases(id,user_id,tier,status,amount,mode,created_at) VALUES(?,?,?,?,?,?,?)').run(s.id,user.id,canonical,'pending',pkg.amount,stripeMode(),Date.now());return {url:s.url};
 }
 
@@ -51,16 +60,21 @@ export function settle(db,e,mode=stripeMode()){
  if(e.livemode!==(mode==='live'))throw Error('Webhook mode mismatch');
  return atomic(db,()=>{
   if(db.prepare('SELECT id FROM webhook_events WHERE id=?').get(e.id))return {duplicate:true};
-  const o=e.data.object;let refundedPurchaseId=null;
+  const o=e.data.object;let refundedPurchaseId=null,oversold=false;
   if(['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(e.type)&&o.payment_status==='paid'){
    const p=db.prepare('SELECT * FROM purchases WHERE id=?').get(o.id);if(!p)throw Error('Unknown checkout session; retry after checkout registration');
    const canon=canonicalPack(p.tier);if(!canon||!metaTierOk(p.tier,o.metadata?.tier)||p.user_id!==o.client_reference_id||o.metadata?.user_id!==p.user_id||o.currency!=='usd'||o.amount_total!==catalogAmount(p.tier)||p.mode!==mode)throw Error('Checkout identity or amount mismatch');
    const pkg=PACKS[canon];
    if(o.customer)db.prepare('INSERT OR IGNORE INTO customers VALUES(?,?,?,?)').run(typeof o.customer==='string'?o.customer:o.customer.id,p.user_id,mode,Date.now());
    if(p.status!=='refunded'&&p.status!=='partially_refunded'){
-    db.prepare("UPDATE purchases SET status='paid',amount=?,payment_intent=?,tier=? WHERE id=?").run(o.amount_total,typeof o.payment_intent==='string'?o.payment_intent:o.payment_intent?.id,canon,o.id);
-    db.prepare('INSERT OR IGNORE INTO entitlements(purchase_id,user_id,tier,active,slots_total,slots_remaining,need_male,need_female) VALUES(?,?,?,1,?,?,?,?)')
-     .run(p.id,p.user_id,canon,pkg.slots,pkg.slots,pkg.need_male||0,pkg.need_female||0);
+    oversold=unclaimedClaimSlots(db)+pkg.slots>claimableGenA(readWorld(db));
+    if(!oversold){
+     db.prepare("UPDATE purchases SET status='paid',amount=?,payment_intent=?,tier=? WHERE id=?").run(o.amount_total,typeof o.payment_intent==='string'?o.payment_intent:o.payment_intent?.id,canon,o.id);
+     db.prepare('INSERT OR IGNORE INTO entitlements(purchase_id,user_id,tier,active,slots_total,slots_remaining,need_male,need_female) VALUES(?,?,?,1,?,?,?,?)')
+      .run(p.id,p.user_id,canon,pkg.slots,pkg.slots,pkg.need_male||0,pkg.need_female||0);
+    }else{
+     db.prepare("UPDATE purchases SET status='oversold' WHERE id=?").run(p.id);
+    }
    }
   }else if(['checkout.session.async_payment_failed','checkout.session.expired'].includes(e.type)){
    db.prepare("UPDATE purchases SET status='failed' WHERE id=? AND status='pending'").run(o.id);
@@ -68,10 +82,10 @@ export function settle(db,e,mode=stripeMode()){
    const p=db.prepare('SELECT * FROM purchases WHERE payment_intent=?').get(o.payment_intent);
    if(!p)throw Error('Payment settlement not recorded yet; retry refund webhook');
    const refunded=Math.max(p.refunded,o.amount_refunded);const full=refunded>=p.amount;
-   db.prepare('UPDATE purchases SET refunded=?,status=? WHERE id=?').run(refunded,full?'refunded':'partially_refunded',p.id);
-   if(full){db.prepare('UPDATE entitlements SET active=0,slots_remaining=0,need_male=0,need_female=0 WHERE purchase_id=?').run(p.id);refundedPurchaseId=p.id;}
+   db.prepare("UPDATE purchases SET refunded=?,status=? WHERE id=?").run(refunded,full?'refunded':'partially_refunded',p.id);
+   if(full){db.prepare("UPDATE entitlements SET active=0,slots_remaining=0,need_male=0,need_female=0 WHERE purchase_id=?").run(p.id);refundedPurchaseId=p.id;}
   }
-  db.prepare('INSERT INTO webhook_events VALUES(?,?)').run(e.id,Date.now());return {received:true,refundedPurchaseId};
+  db.prepare('INSERT INTO webhook_events VALUES(?,?)').run(e.id,Date.now());return {received:true,refundedPurchaseId,oversold};
  });
 }
 
@@ -98,7 +112,7 @@ export function spendClaimSlot(db,userId,{sex,purchaseId}={}){
    if(sex==='male'&&needM<=0)continue;
    if(sex==='female'&&needF<=0)continue;
    const nextM=sex==='male'?needM-1:needM,nextF=sex==='female'?needF-1:needF;
-   db.prepare('UPDATE entitlements SET slots_remaining=slots_remaining-1,need_male=?,need_female=? WHERE purchase_id=? AND slots_remaining>? AND active=1')
+   db.prepare("UPDATE entitlements SET slots_remaining=slots_remaining-1,need_male=?,need_female=? WHERE purchase_id=? AND slots_remaining>? AND active=1")
     .run(nextM,nextF,e.purchase_id,0);
    const after=db.prepare('SELECT slots_remaining,need_male,need_female FROM entitlements WHERE purchase_id=?').get(e.purchase_id);
    if(after&&after.slots_remaining===e.slots_remaining-1)return {purchaseId:e.purchase_id,tier:e.tier,...after};
